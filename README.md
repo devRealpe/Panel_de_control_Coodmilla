@@ -1,42 +1,36 @@
-# ControlCodmilla
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Panel de administración para el sitio web de **Coodmilla**.  
-CRUD de Noticias, Documentos PDF (DIAN-ESAL), Carrusel y Trabajadores.
+## Getting Started
 
-## Stack
-
-- **Frontend:** Next.js (panel en puerto 3001)
-- **Backend de datos:** Supabase (Postgres + Auth + Storage)
-
-El backend Spring Boot + MySQL quedó obsoleto para despliegue; el código en `backend/` se puede archivar.
-
-## Requisitos
-
-- Node.js 18+
-- Proyecto Supabase con el schema de `../supabase/migrations/001_initial.sql`
-- Usuario admin en Supabase Auth
-
-## Arranque
+First, run the development server:
 
 ```bash
-# Configura .env.local (ver .env.example)
-cd frontend
-pnpm install
-pnpm run dev
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-Panel: `http://localhost:3001`  
-Login: email + password del usuario de Supabase Auth.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Rutas
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-| Ruta | Descripción |
-|------|-------------|
-| `/login` | Acceso |
-| `/` | Dashboard |
-| `/noticias` | CRUD noticias |
-| `/documentos` | CRUD PDFs |
-| `/carrusel` | CRUD carrusel |
-| `/trabajadores` | CRUD trabajadores |
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-Ver `../DEPLOY.md` y `../supabase/README.md`.
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

@@ -1,30 +1,41 @@
-# Backend - Java / Spring Boot / Maven
-backend/target/
-*.class
-*.jar
-*.war
-*.ear
-backend/.mvn/wrapper/maven-wrapper.jar
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Uploaded files (user content)
-backend/uploads/
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# IDE
-.idea/
-*.iml
-.vscode/
-*.swp
-*.swo
+# testing
+/coverage
 
-# OS
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
 .DS_Store
-Thumbs.db
-Desktop.ini
+*.pem
 
-# Logs
-*.log
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Environment files
-.env
-.env.local
-.env.*.local
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
