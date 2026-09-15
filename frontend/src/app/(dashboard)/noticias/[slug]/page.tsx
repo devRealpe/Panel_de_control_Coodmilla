@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
-  API_BASE,
   noticiasApi,
   resolveApiAssetUrl,
   toApiAssetPath,
+  uploadFile,
 } from "@/lib/api";
 import type { OutputData } from "@editorjs/editorjs";
 import type { EditorHandle } from "@/components/EditorWrapper";
@@ -48,18 +48,6 @@ function transformEditorImageUrls(data: OutputData, transform: (url: string) => 
       };
     }),
   };
-}
-
-async function uploadFile(file: File, tipo?: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  if (tipo) formData.append("tipo", tipo);
-  const res = await fetch(`${API_BASE}/archivos`, { method: "POST", body: formData });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.success) {
-    throw new Error(data?.error || "Error al subir archivo");
-  }
-  return data.file.url;
 }
 
 export default function EditarNoticiaPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -137,7 +125,7 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ slug: 
           const tempId = block.data.file.tempId;
           const file = pendingFiles.get(tempId);
           if (file) {
-            const serverUrl = await uploadFile(file, "imagenesNoticias");
+            const serverUrl = await uploadFile(file, "imagenes-noticias");
             block.data.file.url = serverUrl;
             delete block.data.file.tempId;
           }
@@ -146,7 +134,7 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ slug: 
 
       let portadaUrl = imagenPortada;
       if (portadaFileRef.current) {
-        portadaUrl = await uploadFile(portadaFileRef.current, "imagenesNoticias");
+        portadaUrl = await uploadFile(portadaFileRef.current, "imagenes-noticias");
         portadaFileRef.current = null;
       }
 

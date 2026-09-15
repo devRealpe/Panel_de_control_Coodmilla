@@ -9,12 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { noticiasApi } from "@/lib/api";
+import { noticiasApi, uploadFile } from "@/lib/api";
 import type { EditorHandle } from "@/components/EditorWrapper";
 
 const EditorWrapper = dynamic(() => import("@/components/EditorWrapper"), { ssr: false });
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
 function generarSlug(texto: string): string {
   return texto
@@ -24,18 +22,6 @@ function generarSlug(texto: string): string {
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/[\s-]+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
-
-async function uploadFile(file: File, tipo?: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  if (tipo) formData.append("tipo", tipo);
-  const res = await fetch(`${API_BASE}/archivos`, { method: "POST", body: formData });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.success) {
-    throw new Error(data?.error || "Error al subir archivo");
-  }
-  return data.file.url;
 }
 
 export default function NuevaNoticiaPage() {
@@ -83,7 +69,7 @@ export default function NuevaNoticiaPage() {
           const tempId = block.data.file.tempId;
           const file = pendingFiles.get(tempId);
           if (file) {
-            const serverUrl = await uploadFile(file, "imagenesNoticias");
+            const serverUrl = await uploadFile(file, "imagenes-noticias");
             block.data.file.url = serverUrl;
             delete block.data.file.tempId;
           }
@@ -92,7 +78,7 @@ export default function NuevaNoticiaPage() {
 
       let portadaUrl = imagenPortada;
       if (portadaFileRef.current) {
-        portadaUrl = await uploadFile(portadaFileRef.current, "imagenesNoticias");
+        portadaUrl = await uploadFile(portadaFileRef.current, "imagenes-noticias");
         portadaFileRef.current = null;
       }
 

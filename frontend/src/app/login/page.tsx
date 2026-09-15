@@ -8,7 +8,7 @@ import { Lock, User, ArrowRight, Loader2 } from "lucide-react";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -41,20 +41,21 @@ function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="space-y-2">
-        <label htmlFor="username" className="text-sm font-medium text-zinc-700">
-          Usuario
+        <label htmlFor="email" className="text-sm font-medium text-zinc-700">
+          Email
         </label>
         <div className="relative">
           <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <input
-            id="username"
-            name="username"
-            autoComplete="username"
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
             required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-4 py-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
-            placeholder="admin"
+            placeholder="admin@coodmilla.com"
           />
         </div>
       </div>
@@ -135,7 +136,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-white/40">
-          Solo personal autorizado. Las credenciales se configuran en el servidor.
+          Solo personal autorizado. Usa el usuario creado en Supabase Auth.
         </p>
       </div>
     </div>
