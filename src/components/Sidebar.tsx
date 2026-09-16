@@ -11,6 +11,7 @@ import {
   Menu,
   Users,
   LogOut,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Documentos DIAN-ESAL", href: "/documentos", icon: FileText },
   { label: "Carrusel", href: "/carrusel", icon: Images },
   { label: "Trabajadores", href: "/trabajadores", icon: Users },
+  { label: "Ayuda", href: "/ayuda", icon: HelpCircle },
 ];
 
 function SidebarContent() {
