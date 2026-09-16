@@ -206,12 +206,26 @@ export default function DocumentosPage() {
       setUploadFile(null);
       setUploadNombre("");
       toast.success("PDF añadido correctamente");
-    } catch {
-      toast.error("Error al subir el PDF");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (
+        msg.toLowerCase().includes("entitytoolarge") ||
+        msg.toLowerCase().includes("payload too large") ||
+        msg.toLowerCase().includes("maximum allowed size")
+      ) {
+        const sizeMB = uploadFile ? (uploadFile.size / 1024 / 1024).toFixed(1) : "?";
+        toast.error(`El archivo (${sizeMB} MB) supera el límite máximo del servidor. Reduce el tamaño del PDF e intenta de nuevo.`);
+      } else {
+        toast.error("Error al subir el PDF. Intenta de nuevo.");
+      }
     } finally {
       setSaving(false);
     }
   };
+
+  // Límite de tamaño: 50 MB (coincide con el límite del bucket Supabase)
+  const MAX_PDF_SIZE_MB = 50;
+  const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
   const handleSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -219,6 +233,13 @@ export default function DocumentosPage() {
 
     if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
       toast.error("Solo se permiten archivos PDF");
+      if (e.target) e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_PDF_SIZE_BYTES) {
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      toast.error(`El archivo pesa ${sizeMB} MB. El tamaño máximo permitido es ${MAX_PDF_SIZE_MB} MB.`);
       if (e.target) e.target.value = "";
       return;
     }
