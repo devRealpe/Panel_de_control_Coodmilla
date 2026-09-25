@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: "Panel de control para la página de Coodmilla",
   icons: {
     icon: [
-      { url: "/logo.jpeg", type: "image/jpeg" },
+      { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
     ],
   },
