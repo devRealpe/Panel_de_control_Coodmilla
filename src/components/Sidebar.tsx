@@ -22,7 +22,7 @@ const navItems = [
   { label: "Noticias", href: "/noticias", icon: Newspaper },
   { label: "Documentos DIAN-ESAL", href: "/documentos", icon: FileText },
   { label: "Carrusel", href: "/carrusel", icon: Images },
-  { label: "Trabajadores", href: "/trabajadores", icon: Users },
+  { label: "Asociados", href: "/trabajadores", icon: Users },
   { label: "Ayuda", href: "/ayuda", icon: HelpCircle },
 ];
 

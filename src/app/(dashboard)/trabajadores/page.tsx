@@ -89,7 +89,7 @@ function WorkerImage({ trabajador }: { trabajador: Trabajador }) {
   return (
     <img
       src={resolveApiAssetUrl(trabajador.fotoUrl)}
-      alt={trabajador.nombreCompleto || "Trabajador"}
+      alt={trabajador.nombreCompleto || "Asociado"}
       className="h-14 w-14 shrink-0 rounded-lg border border-brand-border object-cover"
       onError={() => setFailed(true)}
     />
@@ -208,7 +208,7 @@ export default function TrabajadoresPage() {
       setData(trabajadores);
     } catch {
       setData([]);
-      toast.error("No se pudieron cargar los trabajadores");
+      toast.error("No se pudieron cargar los asociados");
     } finally {
       setLoading(false);
     }
@@ -301,9 +301,9 @@ export default function TrabajadoresPage() {
       setData((prev) => [...prev, created].sort((a, b) => (a.nombreCompleto || "").localeCompare(b.nombreCompleto || "")));
       setCreateOpen(false);
       resetCreate();
-      toast.success("Trabajador creado correctamente");
+      toast.success("Asociado creado correctamente");
     } catch {
-      toast.error("Error al crear el trabajador");
+      toast.error("Error al crear el asociado");
     } finally {
       setSaving(false);
     }
@@ -331,9 +331,9 @@ export default function TrabajadoresPage() {
       const updated = await trabajadoresApi.update(editItem.id!, formData);
       setData((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
       setEditItem(null);
-      toast.success("Trabajador actualizado");
+      toast.success("Asociado actualizado");
     } catch {
-      toast.error("Error al actualizar el trabajador");
+      toast.error("Error al actualizar el asociado");
     } finally {
       setSaving(false);
     }
@@ -346,9 +346,9 @@ export default function TrabajadoresPage() {
       await trabajadoresApi.delete(deleteId);
       setData((prev) => prev.filter((trabajador) => trabajador.id !== deleteId));
       setDeleteId(null);
-      toast.success("Trabajador eliminado");
+      toast.success("Asociado eliminado");
     } catch {
-      toast.error("Error al eliminar el trabajador");
+      toast.error("Error al eliminar el asociado");
     }
   };
 
@@ -382,7 +382,7 @@ export default function TrabajadoresPage() {
             <Users className="h-5 w-5 text-brand-green-light" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-brand-dark">Trabajadores</h1>
+            <h1 className="text-2xl font-bold text-brand-dark">Asociados</h1>
             <p className="text-sm text-brand-text-muted">
               Administra fotos, nombres, estado activo y codigos QR publicos.
             </p>
@@ -423,11 +423,11 @@ export default function TrabajadoresPage() {
               }
             >
               <Plus className="mr-2 h-4 w-4" />
-              Nuevo trabajador
+              Nuevo asociado
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Nuevo trabajador</DialogTitle>
+                <DialogTitle>Nuevo asociado</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-2 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
@@ -541,7 +541,7 @@ export default function TrabajadoresPage() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-brand-text-muted">
           <UserRound className="mb-3 h-12 w-12 opacity-30" />
-          <p>{search ? "No hay resultados para esta busqueda." : "No hay trabajadores registrados."}</p>
+          <p>{search ? "No hay resultados para esta busqueda." : "No hay asociados registrados."}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -560,7 +560,7 @@ export default function TrabajadoresPage() {
       <Dialog open={editItem !== null} onOpenChange={(open) => !open && setEditItem(null)}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Editar trabajador</DialogTitle>
+            <DialogTitle>Editar asociado</DialogTitle>
           </DialogHeader>
           {editItem && (
             <div className="grid gap-4 py-2 sm:grid-cols-2">

@@ -126,7 +126,7 @@ export default function Dashboard() {
         bg: "bg-brand-gold/10",
       },
       {
-        title: "Trabajadores",
+        title: "Asociados",
         value: trabajadores.length,
         detail: `${trabajadoresActivos} activos`,
         href: "/trabajadores",
@@ -271,7 +271,7 @@ export default function Dashboard() {
             <Link href="/trabajadores">
               <Button variant="outline" className="h-11 w-full justify-start border-brand-border">
                 <Users className="mr-2 h-4 w-4 text-brand-green-light" />
-                Gestionar trabajadores
+                Gestionar asociados
               </Button>
             </Link>
           </div>

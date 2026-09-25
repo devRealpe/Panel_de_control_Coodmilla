@@ -105,16 +105,16 @@ export default function AyudaPage() {
               <div className="p-2 bg-rose-100 rounded-lg">
                 <Users className="h-6 w-6 text-rose-600" />
               </div>
-              <CardTitle>Trabajadores y Códigos QR</CardTitle>
+              <CardTitle>Asociados y Códigos QR</CardTitle>
             </div>
             <CardDescription>Gestión del personal y tarjetas de presentación digitales.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              Permite administrar el directorio de trabajadores de la cooperativa. Al agregar un trabajador debe incluir:
+              Permite administrar el directorio de asociados de la cooperativa. Al agregar un asociado debe incluir:
             </p>
             <ul className="list-disc list-inside space-y-1 ml-1 mb-2">
-              <li>Fotografía del trabajador.</li>
+              <li>Fotografía del asociado.</li>
               <li>Nombres completos, cargo y perfil profesional.</li>
               <li>Teléfono de contacto y correo electrónico.</li>
             </ul>
