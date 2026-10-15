@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Newspaper, Plus, Search, Star } from "lucide-react";
+import { Images, Newspaper, Plus, Search, Star, Video } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { noticiasApi, Noticia, resolveApiAssetUrl } from "@/lib/api";
+import { normalizeVideoRef, videoThumbnailUrl } from "@/lib/media/video";
 
 function formatDate(date?: string) {
   if (!date) return "Sin fecha";
@@ -23,6 +24,29 @@ function formatDate(date?: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+/** Imagen para la tarjeta y número de imágenes/videos del contenido. */
+function contentMedia(contenido?: string): { thumb: string | null; images: number; videos: number } {
+  const result = { thumb: null as string | null, images: 0, videos: 0 };
+  if (!contenido) return result;
+  try {
+    const parsed = JSON.parse(contenido) as { blocks?: Array<{ type?: string; data?: Record<string, unknown> }> };
+    for (const block of parsed.blocks ?? []) {
+      if (block.type === "image") {
+        result.images += 1;
+        const url = (block.data?.file as { url?: string } | undefined)?.url;
+        if (!result.thumb && url) result.thumb = url;
+      } else if (block.type === "video" || block.type === "embed") {
+        result.videos += 1;
+        const ref = block.type === "video" ? normalizeVideoRef(block.data) : null;
+        if (!result.thumb && ref) result.thumb = videoThumbnailUrl(ref);
+      }
+    }
+  } catch {
+    // contenido heredado
+  }
+  return result;
 }
 
 function getExcerpt(contenido?: string) {
@@ -55,8 +79,9 @@ export default function NoticiasPage() {
       .then((all) => {
         if (mounted) setData(all);
       })
-      .catch(() => {
+      .catch((err) => {
         if (mounted) setData([]);
+        toast.error(err instanceof Error ? err.message : "No se pudieron cargar las noticias");
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -88,8 +113,8 @@ export default function NoticiasPage() {
       await noticiasApi.delete(slug);
       setData((prev) => prev.filter((n) => n.slug !== slug));
       toast.success("Noticia eliminada");
-    } catch {
-      toast.error("Error al eliminar la noticia");
+    } catch (err) {
+      toast.error(err instanceof Error ? `Error al eliminar: ${err.message}` : "Error al eliminar la noticia");
     }
   };
 
@@ -164,22 +189,25 @@ export default function NoticiasPage() {
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-brand-cream">
             <Newspaper className="h-6 w-6 text-brand-text-muted" />
           </div>
-          <p className="font-semibold text-brand-dark">No hay noticias en esta categoria.</p>
+          <p className="font-semibold text-brand-dark">No hay noticias en esta categoría.</p>
           <p className="mt-1 text-sm text-brand-text-muted">
             Cambia el filtro o crea una nueva noticia.
           </p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((item) => (
+          {filtered.map((item) => {
+            const media = contentMedia(item.contenido);
+            const thumb = item.imagenPortada ? resolveApiAssetUrl(item.imagenPortada) : media.thumb;
+            return (
             <article
               key={item.id}
-              className="flex min-h-[360px] flex-col overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="flex min-h-[340px] flex-col overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="relative h-40 bg-brand-cream">
-                {item.imagenPortada ? (
+                {thumb ? (
                   <img
-                    src={resolveApiAssetUrl(item.imagenPortada)}
+                    src={thumb}
                     alt={item.titulo}
                     className="h-full w-full object-cover"
                   />
@@ -216,6 +244,20 @@ export default function NoticiasPage() {
                 <p className="mt-2 line-clamp-3 text-sm leading-6 text-brand-text-muted">
                   {getExcerpt(item.contenido)}
                 </p>
+                {(media.images > 0 || media.videos > 0) && (
+                  <p className="mt-auto flex gap-3 pt-3 text-xs text-brand-text-muted">
+                    {media.images > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <Images className="h-3.5 w-3.5" /> {media.images} {media.images === 1 ? "imagen" : "imágenes"}
+                      </span>
+                    )}
+                    {media.videos > 0 && (
+                      <span className="inline-flex items-center gap-1">
+                        <Video className="h-3.5 w-3.5" /> {media.videos} {media.videos === 1 ? "video" : "videos"}
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between border-t border-brand-border bg-brand-cream/25 px-4 py-3">
@@ -234,17 +276,18 @@ export default function NoticiasPage() {
                 </button>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
 
       <Dialog open={deleteSlug !== null} onOpenChange={(v) => !v && setDeleteSlug(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Confirmar eliminacion</DialogTitle>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-brand-text-muted">
-            Esta accion no se puede deshacer y eliminara las imagenes y archivos asociados.
+            Esta acción no se puede deshacer y eliminará las imágenes y archivos asociados.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteSlug(null)}>

@@ -2,6 +2,8 @@
  * Helpers compartidos para mapear filas snake_case ↔ camelCase y Storage.
  */
 
+import { normalizeVideoRef } from "@/lib/media/video";
+
 export function slugify(input: string): string {
   return input
     .normalize("NFD")
@@ -26,6 +28,26 @@ export function storagePathFromPublicUrl(url: string | null | undefined): string
   return decodeURIComponent(url.slice(idx + marker.length));
 }
 
+/**
+ * URLs de Storage usadas por una noticia (portada + imágenes del contenido).
+ * Sirve para borrar los archivos que dejan de usarse al editar o eliminar.
+ */
+export function noticiaMediaUrls(contenido: string | null | undefined, portada?: string | null): Set<string> {
+  const urls = new Set<string>();
+  if (portada && storagePathFromPublicUrl(portada)) urls.add(portada);
+  if (!contenido) return urls;
+  try {
+    const doc = JSON.parse(contenido) as { blocks?: Array<{ type?: string; data?: { file?: { url?: string } } }> };
+    for (const block of doc.blocks ?? []) {
+      const url = block.type === "image" ? block.data?.file?.url : undefined;
+      if (url && storagePathFromPublicUrl(url)) urls.add(url);
+    }
+  } catch {
+    // contenido heredado (HTML / texto): no tiene imágenes gestionadas
+  }
+  return urls;
+}
+
 export type DbNoticia = {
   id: number;
   titulo: string;
@@ -42,10 +64,16 @@ export type DbNoticia = {
 export type DbCarrusel = {
   id: number;
   titulo: string;
-  imagen_url: string;
+  /** En videos es opcional (portada personalizada). */
+  imagen_url: string | null;
   link_url: string | null;
   orden: number;
   activo: boolean;
+  /** Columnas de la migración 002 (ausentes si aún no se aplicó). */
+  tipo?: "imagen" | "video";
+  video_proveedor?: string | null;
+  video_id?: string | null;
+  video_url?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -92,8 +120,11 @@ export function mapCarrusel(row: DbCarrusel) {
   return {
     id: row.id,
     titulo: row.titulo,
-    imagenUrl: row.imagen_url,
+    imagenUrl: row.imagen_url ?? "",
     linkUrl: row.link_url ?? undefined,
+    tipo: (row.tipo === "video" ? "video" : "imagen") as "imagen" | "video",
+    video: row.tipo === "video" ? normalizeVideoRef({ provider: row.video_proveedor, id: row.video_id }) : null,
+    videoUrl: row.video_url ?? undefined,
     orden: row.orden,
     activo: row.activo,
     createdAt: row.created_at,

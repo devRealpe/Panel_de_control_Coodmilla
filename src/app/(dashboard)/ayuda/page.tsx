@@ -49,9 +49,12 @@ export default function AyudaPage() {
               En esta sección puede crear nuevas noticias que aparecerán en el portal principal de la cooperativa.
             </p>
             <ul className="list-disc list-inside space-y-1 ml-1">
-              <li><strong>Imagen principal:</strong> Cargue una imagen representativa en formato JPG o PNG.</li>
-              <li><strong>Título y contenido:</strong> Asegúrese de escribir títulos claros y revisar la ortografía del contenido.</li>
-              <li>Las noticias se muestran ordenadas por fecha de creación automáticamente.</li>
+              <li><strong>Imagen de portada:</strong> se usa en las tarjetas y al compartir. Si falta, se usa la primera imagen o video del contenido.</li>
+              <li><strong>Contenido:</strong> pulse <strong>+</strong> para añadir texto, títulos, listas, citas, imágenes y videos en el orden que quiera.</li>
+              <li><strong>Videos:</strong> elija «Video (YouTube)» y pegue el enlace del video (también puede pegar el enlace directamente en un párrafo vacío). No hace falta subir archivos.</li>
+              <li><strong>Opciones de imagen:</strong> en el menú de ajustes del bloque puede activar borde, fondo o ancho completo; el sitio publicado las respeta.</li>
+              <li>Use <strong>Vista previa</strong> para ver la noticia exactamente como quedará publicada antes de guardar.</li>
+              <li>Las noticias se ordenan por la <strong>fecha de publicación</strong>, que puede ajustar en el panel lateral.</li>
             </ul>
           </CardContent>
         </Card>
@@ -85,13 +88,15 @@ export default function AyudaPage() {
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Images className="h-6 w-6 text-purple-600" />
               </div>
-              <CardTitle>Carrusel de Imágenes</CardTitle>
+              <CardTitle>Carrusel</CardTitle>
             </div>
-            <CardDescription>Administración de las imágenes deslizantes del inicio.</CardDescription>
+            <CardDescription>Imágenes y videos deslizantes del inicio y de Servicios.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
               Las imágenes del carrusel son lo primero que ven los usuarios al ingresar a la página de Coodmilla.
+              Cada elemento puede ser una imagen subida o un <strong>video de YouTube por enlace</strong> (con portada opcional).
+              Arrastre los elementos para cambiar su orden.
             </p>
             <p>
               <strong>Recomendación:</strong> Suba imágenes en orientación <em>horizontal (apaisadas)</em> y con buena resolución para evitar que se vean pixeladas o distorsionadas en pantallas grandes.

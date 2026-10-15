@@ -8,10 +8,12 @@ import {
   mapNoticia,
   mapPdf,
   mapTrabajador,
+  noticiaMediaUrls,
   randomCodigoPublico,
   slugify,
   storagePathFromPublicUrl,
 } from "@/lib/mappers";
+import { normalizeVideoRef, parseVideoUrl, type VideoRef } from "@/lib/media/video";
 
 export type Noticia = {
   id?: number;
@@ -29,6 +31,9 @@ export type Carrusel = {
   titulo: string;
   imagenUrl: string;
   linkUrl?: string;
+  tipo?: "imagen" | "video";
+  video?: VideoRef | null;
+  videoUrl?: string;
   orden?: number;
   activo?: boolean;
   createdAt?: string;
@@ -88,7 +93,7 @@ async function requireUser() {
 
 async function ensureUniqueSlug(base: string, excludeId?: number): Promise<string> {
   const supabase = createClient();
-  let candidate = base || "noticia";
+  const candidate = base || "noticia";
   let n = 0;
   for (;;) {
     const slug = n === 0 ? candidate : `${candidate}-${n}`;
@@ -121,10 +126,16 @@ async function uploadToMedia(folder: string, file: File, preferredName?: string)
 }
 
 async function removeMediaByUrl(url?: string | null) {
-  const path = storagePathFromPublicUrl(url);
-  if (!path) return;
+  await removeMediaByUrls(url ? [url] : []);
+}
+
+/** Borra archivos del bucket. Un fallo aquí no debe deshacer la operación principal. */
+async function removeMediaByUrls(urls: string[]) {
+  const paths = urls.map((u) => storagePathFromPublicUrl(u)).filter((p): p is string => Boolean(p));
+  if (!paths.length) return;
   const supabase = createClient();
-  await supabase.storage.from("media").remove([path]);
+  const { error } = await supabase.storage.from("media").remove(paths);
+  if (error) console.warn("[media] No se pudieron borrar archivos:", error.message);
 }
 
 export async function uploadFile(file: File, folder = "imagenes-noticias"): Promise<string> {
@@ -155,13 +166,15 @@ export const noticiasApi = {
 
   async getBySlug(slug: string) {
     const supabase = await requireUser();
-    const { data, error } = await supabase.from("noticias").select("*").eq("slug", slug).single();
+    const { data, error } = await supabase.from("noticias").select("*").eq("slug", slug).maybeSingle();
     if (error) throw new Error(error.message);
+    if (!data) throw new Error("la noticia no existe o fue eliminada");
     return mapNoticia(data as DbNoticia);
   },
 
   async create(input: Omit<Noticia, "id">) {
     const supabase = await requireUser();
+    assertNoticiaValida(input);
     const base = slugify(input.slug || input.titulo);
     const slug = await ensureUniqueSlug(base);
     const { data, error } = await supabase
@@ -183,6 +196,7 @@ export const noticiasApi = {
 
   async update(slug: string, input: Partial<Noticia>) {
     const supabase = await requireUser();
+    assertNoticiaValida(input);
     const { data: current, error: findErr } = await supabase
       .from("noticias")
       .select("*")
@@ -190,9 +204,11 @@ export const noticiasApi = {
       .single();
     if (findErr) throw new Error(findErr.message);
 
+    // El slug solo cambia si se envía explícitamente: editar el título no debe
+    // romper los enlaces ya compartidos de la noticia.
     const nextSlug =
-      input.slug || input.titulo
-        ? await ensureUniqueSlug(slugify(input.slug || input.titulo || current.slug), current.id)
+      input.slug && slugify(input.slug) !== current.slug
+        ? await ensureUniqueSlug(slugify(input.slug), current.id)
         : current.slug;
 
     const { data, error } = await supabase
@@ -203,6 +219,7 @@ export const noticiasApi = {
         contenido: input.contenido ?? current.contenido,
         imagen_portada:
           input.imagenPortada !== undefined ? input.imagenPortada || null : current.imagen_portada,
+        fecha_publicacion: input.fechaPublicacion ?? current.fecha_publicacion,
         activo: input.activo ?? current.activo,
         destacado: input.destacado ?? current.destacado,
       })
@@ -210,6 +227,12 @@ export const noticiasApi = {
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+
+    // Borra del Storage las imágenes que la noticia dejó de usar.
+    const before = noticiaMediaUrls(current.contenido, current.imagen_portada);
+    const after = noticiaMediaUrls(data.contenido, data.imagen_portada);
+    await removeMediaByUrls([...before].filter((u) => !after.has(u)));
+
     return mapNoticia(data as DbNoticia);
   },
 
@@ -217,15 +240,35 @@ export const noticiasApi = {
     const supabase = await requireUser();
     const { data, error: findErr } = await supabase
       .from("noticias")
-      .select("imagen_portada")
+      .select("imagen_portada, contenido")
       .eq("slug", slug)
       .maybeSingle();
     if (findErr) throw new Error(findErr.message);
-    await removeMediaByUrl(data?.imagen_portada);
     const { error } = await supabase.from("noticias").delete().eq("slug", slug);
     if (error) throw new Error(error.message);
+    await removeMediaByUrls([...noticiaMediaUrls(data?.contenido, data?.imagen_portada)]);
   },
 };
+
+/**
+ * Validación de la noticia antes de persistirla (además de la del formulario):
+ * los bloques de video deben referenciar un proveedor admitido con id válido.
+ */
+function assertNoticiaValida(input: Partial<Noticia>) {
+  if (input.titulo !== undefined && !input.titulo.trim()) throw new Error("El título es obligatorio");
+  if (!input.contenido) return;
+  let doc: { blocks?: Array<{ type?: string; data?: Record<string, unknown> }> };
+  try {
+    doc = JSON.parse(input.contenido);
+  } catch {
+    throw new Error("El contenido no tiene un formato válido");
+  }
+  for (const block of doc.blocks ?? []) {
+    if (block.type === "video" && !normalizeVideoRef(block.data)) {
+      throw new Error("Hay un video con un enlace no compatible. Corrígelo o elimínalo antes de guardar.");
+    }
+  }
+}
 
 function formBool(fd: FormData, key: string, fallback = true): boolean {
   const v = fd.get(key);
@@ -238,6 +281,41 @@ function formStr(fd: FormData, key: string): string | undefined {
   if (v == null) return undefined;
   const s = String(v).trim();
   return s === "" ? undefined : s;
+}
+
+/** Enlaces del carrusel: solo http(s) o rutas internas (evita "javascript:" y similares). */
+function safeLinkUrl(value?: string): string | null {
+  if (!value) return null;
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
+  try {
+    const url = new URL(value);
+    if (url.protocol === "https:" || url.protocol === "http:") return url.toString();
+  } catch {
+    // formato inválido
+  }
+  throw new Error("El enlace debe empezar por https:// o ser una ruta del sitio (por ejemplo /noticias)");
+}
+
+function carruselMediaFromForm(formData: FormData) {
+  const tipo = formStr(formData, "tipo") === "video" ? "video" : "imagen";
+  if (tipo === "imagen") {
+    return { tipo, columns: { tipo, video_proveedor: null, video_id: null, video_url: null } } as const;
+  }
+  const raw = formStr(formData, "videoUrl") ?? "";
+  const parsed = parseVideoUrl(raw);
+  if (!parsed.ok) throw new Error(parsed.error);
+  return {
+    tipo,
+    columns: { tipo, video_proveedor: parsed.video.provider, video_id: parsed.video.id, video_url: raw },
+  } as const;
+}
+
+function friendlyCarruselError(message: string): string {
+  if (/column .*(tipo|video_)|schema cache/i.test(message)) {
+    return "La base de datos aún no admite videos en el carrusel. Aplica la migración supabase/migrations/002_carrusel_videos.sql en Supabase.";
+  }
+  if (/carrusel_media_chk/.test(message)) return "El video no es válido o falta la imagen.";
+  return message;
 }
 
 export const carruselApi = {
@@ -257,8 +335,11 @@ export const carruselApi = {
 
   async create(formData: FormData) {
     const supabase = await requireUser();
+    const media = carruselMediaFromForm(formData);
     const file = formData.get("file");
-    if (!(file instanceof File) || file.size === 0) throw new Error("La imagen es obligatoria");
+    const hasFile = file instanceof File && file.size > 0;
+    if (media.tipo === "imagen" && !hasFile) throw new Error("La imagen es obligatoria");
+    const linkUrl = safeLinkUrl(formStr(formData, "linkUrl"));
 
     const { data: maxRow } = await supabase
       .from("carrusel")
@@ -267,19 +348,25 @@ export const carruselApi = {
       .limit(1)
       .maybeSingle();
 
-    const uploaded = await uploadToMedia("imagenes-carrusel", file);
+    const uploaded = hasFile ? await uploadToMedia("imagenes-carrusel", file as File) : null;
     const { data, error } = await supabase
       .from("carrusel")
       .insert({
         titulo: formStr(formData, "titulo") || "Sin título",
-        imagen_url: uploaded.url,
-        link_url: formStr(formData, "linkUrl") ?? null,
+        imagen_url: uploaded?.url ?? null,
+        link_url: linkUrl,
         activo: formBool(formData, "activo", true),
         orden: (maxRow?.orden ?? 0) + 1,
+        // Las columnas de video solo se envían para videos: así las imágenes
+        // siguen funcionando aunque la migración 002 aún no esté aplicada.
+        ...(media.tipo === "video" ? media.columns : {}),
       })
       .select("*")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      await removeMediaByUrl(uploaded?.url);
+      throw new Error(friendlyCarruselError(error.message));
+    }
     return mapCarrusel(data as DbCarrusel);
   },
 
@@ -292,26 +379,37 @@ export const carruselApi = {
       .single();
     if (findErr) throw new Error(findErr.message);
 
-    let imagenUrl = current.imagen_url;
+    const migrated = "tipo" in current;
+    const media = formData.has("tipo") ? carruselMediaFromForm(formData) : null;
+    const tipo = media?.tipo ?? (current.tipo === "video" ? "video" : "imagen");
+
+    let imagenUrl: string | null = current.imagen_url;
     const file = formData.get("file");
-    if (file instanceof File && file.size > 0) {
-      const uploaded = await uploadToMedia("imagenes-carrusel", file);
-      await removeMediaByUrl(current.imagen_url);
-      imagenUrl = uploaded.url;
-    }
+    const newFile = file instanceof File && file.size > 0;
+    const removePoster = formStr(formData, "quitarImagen") === "true";
+    if (tipo === "imagen" && !newFile && !imagenUrl) throw new Error("La imagen es obligatoria");
+
+    const uploaded = newFile ? await uploadToMedia("imagenes-carrusel", file as File) : null;
+    if (uploaded) imagenUrl = uploaded.url;
+    else if (removePoster && tipo === "video") imagenUrl = null;
 
     const { data, error } = await supabase
       .from("carrusel")
       .update({
         titulo: formStr(formData, "titulo") ?? current.titulo,
-        link_url: formData.has("linkUrl") ? formStr(formData, "linkUrl") ?? null : current.link_url,
+        link_url: formData.has("linkUrl") ? safeLinkUrl(formStr(formData, "linkUrl")) : current.link_url,
         activo: formData.has("activo") ? formBool(formData, "activo", true) : current.activo,
         imagen_url: imagenUrl,
+        ...(media && (migrated || media.tipo === "video") ? media.columns : {}),
       })
       .eq("id", id)
       .select("*")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      await removeMediaByUrl(uploaded?.url);
+      throw new Error(friendlyCarruselError(error.message));
+    }
+    if (current.imagen_url && current.imagen_url !== data.imagen_url) await removeMediaByUrl(current.imagen_url);
     return mapCarrusel(data as DbCarrusel);
   },
 
